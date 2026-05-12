@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales &amp; Marketing Agent Org</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #080d1a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      text-align: center;
+      padding: 52px 24px 40px;
+      border-bottom: 1px solid #1a2540;
+    }
+    .site-header h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      background: linear-gradient(135deg, #f8fafc 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .site-header p {
+      margin-top: 10px;
+      color: #475569;
+      font-size: 0.9rem;
+    }
+    .site-header .entry-hint {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: #0f172a;
+      border: 1px solid #1e3a5f;
+      font-size: 0.75rem;
+      color: #60a5fa;
+    }
+    .site-header .entry-hint span {
+      color: #f8fafc;
+      font-weight: 700;
+    }
+
+    /* ── Org wrapper ── */
+    .org-wrapper {
+      position: relative;
+      overflow-x: auto;
+      padding: 48px 60px 110px;
+    }
+
+    /* ── CSS Tree ── */
+    .tree, .tree ul, .tree li { list-style: none; }
+    .tree {
+      display: flex;
+      justify-content: center;
+      min-width: 960px;
+    }
+    .tree > li {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .tree ul {
+      display: flex;
+      justify-content: center;
+      padding-top: 38px;
+      position: relative;
+    }
+    .tree ul::before {          /* vertical stem from parent */
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 38px;
+      background: #253352;
+    }
+    .tree li {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 14px;
+      position: relative;
+    }
+    .tree li::before {          /* left half of horizontal connector */
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 50%;
+      height: 2px;
+      background: #253352;
+    }
+    .tree li::after {           /* right half of horizontal connector */
+      content: '';
+      position: absolute;
+      top: 0; left: 50%; right: 0;
+      height: 2px;
+      background: #253352;
+    }
+    .tree li:only-child::before,
+    .tree li:only-child::after  { display: none; }
+    .tree li:first-child::before { display: none; }
+    .tree li:last-child::after   { display: none; }
+
+    /* ── Node base ── */
+    .node {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 18px;
+      border-radius: 10px;
+      cursor: default;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      min-width: 138px;
+      text-align: center;
+      user-select: none;
+      z-index: 1;
+    }
+    .node:hover { transform: translateY(-3px); z-index: 50; }
+    .node-label {
+      font-size: 0.58rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      opacity: 0.6;
+      margin-bottom: 3px;
+    }
+    .node-name {
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .entry-tag {
+      margin-top: 6px;
+      font-size: 0.58rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      background: #d97706;
+      color: #1c0a00;
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+
+    /* ── Tier colours ── */
+    .tier-lead {
+      background: linear-gradient(135deg, #3d1500 0%, #7c2d00 100%);
+      border: 1.5px solid #d97706;
+    }
+    .tier-lead:hover  { box-shadow: 0 0 22px rgba(217,119,6,0.45); }
+    .tier-lead .node-label { color: #fbbf24; }
+    .tier-lead .node-name  { color: #fef3c7; }
+
+    .tier-mgmt {
+      background: linear-gradient(135deg, #0b1d3a 0%, #1e3a8a 100%);
+      border: 1.5px solid #3b82f6;
+    }
+    .tier-mgmt:hover  { box-shadow: 0 0 22px rgba(59,130,246,0.45); }
+    .tier-mgmt .node-label { color: #93c5fd; }
+    .tier-mgmt .node-name  { color: #dbeafe; }
+
+    .tier-exec {
+      background: linear-gradient(135deg, #042414 0%, #14532d 100%);
+      border: 1.5px solid #22c55e;
+    }
+    .tier-exec:hover  { box-shadow: 0 0 22px rgba(34,197,94,0.45); }
+    .tier-exec .node-label { color: #86efac; }
+    .tier-exec .node-name  { color: #dcfce7; }
+
+    .tier-spec {
+      background: linear-gradient(135deg, #1a0530 0%, #3b0764 100%);
+      border: 1.5px solid #a855f7;
+    }
+    .tier-spec:hover  { box-shadow: 0 0 22px rgba(168,85,247,0.45); }
+    .tier-spec .node-label { color: #d8b4fe; }
+    .tier-spec .node-name  { color: #f3e8ff; }
+
+    .tier-mktg {
+      background: linear-gradient(135deg, #3d0c00 0%, #7c2d12 100%);
+      border: 1.5px solid #f97316;
+    }
+    .tier-mktg:hover  { box-shadow: 0 0 22px rgba(249,115,22,0.45); }
+    .tier-mktg .node-label { color: #fdba74; }
+    .tier-mktg .node-name  { color: #ffedd5; }
+
+    /* ── Tooltip ── */
+    .tip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 12px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 11px 14px;
+      width: 240px;
+      font-size: 0.72rem;
+      line-height: 1.55;
+      color: #94a3b8;
+      text-align: left;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.75);
+      pointer-events: none;
+      z-index: 200;
+      white-space: normal;
+    }
+    .tip strong {
+      display: block;
+      color: #e2e8f0;
+      font-size: 0.77rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    .tip code {
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 0.68rem;
+      background: #1e293b;
+      border-radius: 3px;
+      padding: 1px 4px;
+      color: #7dd3fc;
+    }
+    .tip::after {
+      content: '';
+      position: absolute;
+      top: 100%; left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: #334155;
+    }
+    .node:hover .tip { display: block; }
+
+    /* ── SVG overlay ── */
+    #overlay {
+      position: absolute;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 10;
+      overflow: visible;
+    }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 28px;
+      flex-wrap: wrap;
+      padding: 22px 24px;
+      border-top: 1px solid #1a2540;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+    .lswatch {
+      width: 24px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .lline {
+      width: 28px;
+      border-top: 2px dashed;
+      flex-shrink: 0;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 0.72rem;
+      color: #334155;
+      border-top: 1px solid #1a2540;
+    }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>Sales &amp; Marketing Agent Org</h1>
+  <p>A team of Claude Code subagents simulating a full B2B revenue organization</p>
+  <div class="entry-hint">Start by addressing the <span>CRO</span> with a revenue goal — everything cascades from there</div>
+</header>
+
+<div class="org-wrapper" id="wrapper">
+  <svg id="overlay"></svg>
+
+  <ul class="tree">
+    <li>
+
+      <!-- ── CRO ── -->
+      <div class="node tier-lead" id="n-cro">
+        <div class="node-label">Entry Point</div>
+        <div class="node-name">CRO</div>
+        <div class="entry-tag">Start here</div>
+        <div class="tip">
+          <strong>CRO — Chief Revenue Officer</strong>
+          Top-level revenue orchestrator. Owns the full number — new business, expansion, and retention. Coordinates <code>vp-sales</code> &amp; <code>vp-marketing</code>. Every revenue goal and strategy decision starts here.
+        </div>
+      </div>
+
+      <ul>
+
+        <!-- ══ VP Sales branch ══ -->
+        <li>
+          <div class="node tier-mgmt" id="n-vps">
+            <div class="node-label">Leadership</div>
+            <div class="node-name">VP of Sales</div>
+            <div class="tip">
+              <strong>VP of Sales</strong>
+              Owns quota setting, pipeline management, forecast accuracy, and team performance. Receives revenue targets from the CRO and translates them into executable plans. Manages JSM, Sales Ops, and Sales Enablement.
+            </div>
+          </div>
+          <ul>
+            <li>
+              <div class="node tier-mgmt" id="n-so">
+                <div class="node-label">Management</div>
+                <div class="node-name">Sales Ops</div>
+                <div class="tip">
+                  <strong>Sales Operations</strong>
+                  CRM hygiene, forecasting, pipeline reporting, process enforcement, and sales metrics. Use for pipeline audits, weekly forecasts, win rate, and deal velocity reports. Outputs to <code>Context/reports/</code>.
+                </div>
+              </div>
+            </li>
+            <li>
+              <div class="node tier-mgmt" id="n-se">
+                <div class="node-label">Management</div>
+                <div class="node-name">Sales Enablement</div>
+                <div class="tip">
+                  <strong>Sales Enablement</strong>
+                  Battle cards, objection handling guides, talk tracks, call scripts, and onboarding playbooks. Use when reps need competitive intelligence tools or scenario-specific messaging. Outputs to <code>Context/playbooks/</code>.
+                </div>
+              </div>
+            </li>
+            <li>
+              <div class="node tier-mgmt" id="n-jsm">
+                <div class="node-label">Management</div>
+                <div class="node-name">Junior Sales Manager</div>
+                <div class="tip">
+                  <strong>Junior Sales Manager</strong>
+                  Mid-level orchestrator. Coordinates SDR, Account Executive, and Account Manager. Manages leads through the full sales cycle, reviews team activity, and escalates blockers upward.
+                </div>
+              </div>
+              <ul>
+
+                <!-- SDR branch -->
+                <li>
+                  <div class="node tier-exec" id="n-sdr">
+                    <div class="node-label">Execution</div>
+                    <div class="node-name">SDR</div>
+                    <div class="tip">
+                      <strong>SDR — Sales Development Rep</strong>
+                      Owns top-of-funnel: company research, decision maker identification, buying signal monitoring, and cold outreach sequence creation. Hands off to Account Executive once a meeting is booked.
+                    </div>
+                  </div>
+                  <ul>
+                    <li>
+                      <div class="node tier-spec" id="n-pr">
+                        <div class="node-label">Specialist</div>
+                        <div class="node-name">prospect-researcher</div>
+                        <div class="tip">
+                          <strong>prospect-researcher</strong>
+                          Researches target companies and identifies decision makers. Surfaces firmographics, buying signals, and competitive context. Outputs structured profiles to <code>Context/prospects/</code>.
+                        </div>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="node tier-spec" id="n-ow">
+                        <div class="node-label">Specialist</div>
+                        <div class="node-name">outreach-writer</div>
+                        <div class="tip">
+                          <strong>outreach-writer</strong>
+                          Writes personalized cold email and LinkedIn sequences (5–7 touches). Reads prospect profiles from <code>Context/prospects/</code> and saves sequences to <code>Context/outreach/</code>.
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </li>
+
+                <!-- AE branch -->
+                <li>
+                  <div class="node tier-exec" id="n-ae">
+                    <div class="node-label">Execution</div>
+                    <div class="node-name">Account Executive</div>
+                    <div class="tip">
+                      <strong>Account Executive</strong>
+                      Owns deals from first meeting through close. Handles BANT/MEDDIC qualification, proposal drafting, and deal progression. Receives handoff from SDR; hands off to Account Manager on close.
+                    </div>
+                  </div>
+                  <ul>
+                    <li>
+                      <div class="node tier-spec" id="n-mp">
+                        <div class="node-label">Specialist</div>
+                        <div class="node-name">meeting-prepper</div>
+                        <div class="tip">
+                          <strong>meeting-prepper</strong>
+                          Prepares pre-call briefs and qualifies leads before meetings. Builds BANT/MEDDIC scoring and discovery questions. Outputs to <code>Context/meeting-preps/</code>.
+                        </div>
+                      </div>
+                    </li>
+                    <li>
+                      <div class="node tier-spec" id="n-pp">
+                        <div class="node-label">Specialist</div>
+                        <div class="node-name">pipeline-reporter</div>
+                        <div class="tip">
+                          <strong>pipeline-reporter</strong>
+                          Generates pipeline status reports, deal health summaries, stall flags, and weighted revenue forecasts. Reads deal data from <code>Context/pipeline/</code>; outputs to <code>Context/reports/</code>.
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </li>
+
+                <!-- AM -->
+                <li>
+                  <div class="node tier-exec" id="n-am">
+                    <div class="node-label">Execution</div>
+                    <div class="node-name">Account Manager</div>
+                    <div class="tip">
+                      <strong>Account Manager</strong>
+                      Owns all post-close customer relationships. Manages renewals, identifies upsell and cross-sell opportunities, monitors churn risk, and maintains account health. Receives handoff from Account Executive.
+                    </div>
+                  </div>
+                </li>
+
+              </ul>
+            </li>
+          </ul>
+        </li>
+
+        <!-- ══ VP Marketing branch ══ -->
+        <li>
+          <div class="node tier-mgmt" id="n-vpm">
+            <div class="node-label">Leadership</div>
+            <div class="node-name">VP of Marketing</div>
+            <div class="tip">
+              <strong>VP of Marketing</strong>
+              Owns pipeline contribution from marketing: MQL targets, campaign strategy, content program, and brand positioning. Coordinates with VP Sales on MQL quality and handoff SLA. Manages Demand Gen and Content Marketing.
+            </div>
+          </div>
+          <ul>
+            <li>
+              <div class="node tier-mktg" id="n-dg">
+                <div class="node-label">Marketing</div>
+                <div class="node-name">Demand Gen</div>
+                <div class="tip">
+                  <strong>Demand Generation Manager</strong>
+                  Owns top-of-funnel marketing: campaign briefs, lead scoring, MQL definition, MQL-to-SDR handoff process, and campaign-to-pipeline attribution. Outputs to <code>Context/campaigns/</code>.
+                </div>
+              </div>
+            </li>
+            <li>
+              <div class="node tier-mktg" id="n-cm">
+                <div class="node-label">Marketing</div>
+                <div class="node-name">Content Marketing</div>
+                <div class="tip">
+                  <strong>Content Marketing Manager</strong>
+                  Produces sales collateral, email nurture sequences, thought leadership content, one-pagers, case study drafts, comparison guides, and ROI frameworks. Outputs to <code>Context/content/</code>.
+                </div>
+              </div>
+            </li>
+          </ul>
+        </li>
+
+      </ul>
+    </li>
+  </ul>
+</div>
+
+<div class="legend">
+  <div class="legend-item">
+    <div class="lswatch" style="background:#d97706;border:1px solid #d97706"></div>Leadership
+  </div>
+  <div class="legend-item">
+    <div class="lswatch" style="background:#3b82f6;border:1px solid #3b82f6"></div>Management
+  </div>
+  <div class="legend-item">
+    <div class="lswatch" style="background:#22c55e;border:1px solid #22c55e"></div>Execution
+  </div>
+  <div class="legend-item">
+    <div class="lswatch" style="background:#a855f7;border:1px solid #a855f7"></div>Specialist
+  </div>
+  <div class="legend-item">
+    <div class="lswatch" style="background:#f97316;border:1px solid #f97316"></div>Marketing
+  </div>
+  <div class="legend-item">
+    <div class="lline" style="border-color:#22c55e"></div>Sequential handoff
+  </div>
+  <div class="legend-item">
+    <div class="lline" style="border-color:#60a5fa"></div>Peer coordination
+  </div>
+</div>
+
+<div class="footer">Hover over any node to see the agent's role description &nbsp;·&nbsp; All agents communicate via files in <code style="font-family:monospace">Context/</code></div>
+
+<script>
+(function () {
+  const svg     = document.getElementById('overlay');
+  const wrapper = document.getElementById('wrapper');
+
+  function init() {
+    svg.setAttribute('width',  wrapper.scrollWidth);
+    svg.setAttribute('height', wrapper.scrollHeight);
+
+    // ── Arrow markers ──
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+
+    function mkMarker(id, color) {
+      const m = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+      m.setAttribute('id', id);
+      m.setAttribute('markerWidth', '7');
+      m.setAttribute('markerHeight', '7');
+      m.setAttribute('refX', '6');
+      m.setAttribute('refY', '3.5');
+      m.setAttribute('orient', 'auto');
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', 'M0,0 L0,7 L7,3.5 z');
+      p.setAttribute('fill', color);
+      m.appendChild(p);
+      defs.appendChild(m);
+    }
+
+    mkMarker('arr-green', '#22c55e');
+    mkMarker('arr-blue',  '#60a5fa');
+    svg.appendChild(defs);
+
+    // ── Geometry helpers ──
+    const wRect = wrapper.getBoundingClientRect();
+
+    function box(id) {
+      const r = document.getElementById(id).getBoundingClientRect();
+      const sl = wrapper.scrollLeft, st = wrapper.scrollTop;
+      const ox = wRect.left, oy = wRect.top;
+      return {
+        cx:     r.left - ox + sl + r.width  / 2,
+        cy:     r.top  - oy + st + r.height / 2,
+        top:    r.top  - oy + st,
+        bottom: r.bottom - oy + st,
+        left:   r.left  - ox + sl,
+        right:  r.right  - ox + sl,
+      };
+    }
+
+    function arc(x1, y1, x2, y2, qx, qy, color, markerEndId, opacity) {
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', `M ${x1} ${y1} Q ${qx} ${qy}, ${x2} ${y2}`);
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', color);
+      p.setAttribute('stroke-width', '1.5');
+      p.setAttribute('stroke-dasharray', '5,4');
+      p.setAttribute('opacity', opacity || '0.75');
+      p.setAttribute('marker-end', `url(#${markerEndId})`);
+      svg.appendChild(p);
+    }
+
+    // ── Handoff: SDR → AE ──
+    const sdr = box('n-sdr'), ae = box('n-ae'), am = box('n-am');
+    const y1 = Math.max(sdr.bottom, ae.bottom) + 20;
+    arc(
+      sdr.right, sdr.cy,
+      ae.left,   ae.cy,
+      (sdr.right + ae.left) / 2, y1,
+      '#22c55e', 'arr-green'
+    );
+
+    // ── Handoff: AE → AM ──
+    const y2 = Math.max(ae.bottom, am.bottom) + 20;
+    arc(
+      ae.right, ae.cy,
+      am.left,  am.cy,
+      (ae.right + am.left) / 2, y2,
+      '#22c55e', 'arr-green'
+    );
+
+    // ── Peer coordination: VP Sales ↔ VP Marketing (two offset arcs) ──
+    const vps = box('n-vps'), vpm = box('n-vpm');
+    const midX = (vps.right + vpm.left) / 2;
+    const baseY = Math.max(vps.bottom, vpm.bottom) + 22;
+
+    // VP Sales → VP Marketing
+    arc(
+      vps.right, vps.cy - 5,
+      vpm.left,  vpm.cy - 5,
+      midX, baseY,
+      '#60a5fa', 'arr-blue', '0.7'
+    );
+    // VP Marketing → VP Sales (reversed path, marker-end lands at VP Sales)
+    arc(
+      vpm.left,  vpm.cy + 5,
+      vps.right, vps.cy + 5,
+      midX, baseY + 18,
+      '#60a5fa', 'arr-blue', '0.7'
+    );
+  }
+
+  if (document.readyState === 'complete') { init(); }
+  else { window.addEventListener('load', init); }
+})();
+</script>
+
+</body>
+</html>
