@@ -71,7 +71,7 @@ CRO  ← entry point — talk to this agent directly
 
 ## Context Directory Structure
 
-All agent inputs and outputs live in `Context/`:
+All agent inputs and outputs live in `Context/`. This directory is the **shared state** of the org — agents communicate asynchronously by writing files here and reading what prior agents produced.
 
 ```
 Context/
@@ -125,3 +125,64 @@ The CRO cascades down to VP Sales and VP Marketing, who delegate further to thei
 | Objection guide | `Context/playbooks/objection-guide-[topic].md` |
 | Talk track | `Context/playbooks/talk-track-[scenario].md` |
 | Content asset | `Context/content/[type]-[topic].md` |
+
+---
+
+## Agent Definition Format
+
+All agents are defined in `.claude/agents/[name].md`. Each file has two parts:
+
+**Frontmatter** — consumed by the Claude Code harness:
+```yaml
+---
+name: agent-name          # must match the subagent_type used to invoke it
+description: One sentence explaining when to pick this agent over others
+tools:
+  - Read
+  - Write
+  - WebSearch
+  - WebFetch              # only for agents that fetch external pages
+---
+```
+
+**System prompt** — the body below the frontmatter. Defines the agent's role, workflows, output format, and rules.
+
+### Tool Access by Tier
+
+| Tier | Agents | Tools |
+|------|--------|-------|
+| Leadership / Management | `cro`, `vp-sales`, `vp-marketing`, `junior-sales-manager`, `sales-ops`, `sales-enablement` | Read, Write, WebSearch |
+| Execution (outbound) | `sdr`, `account-executive`, `account-manager`, `demand-gen`, `content-marketing` | Read, Write, WebSearch, WebFetch |
+| Specialists | `prospect-researcher`, `outreach-writer`, `meeting-prepper`, `pipeline-reporter` | WebSearch, WebFetch, Read, Write (varies) |
+
+Add `WebFetch` only to agents that need to fetch live web pages (external research). Management agents coordinate via files in `Context/` and don't need it.
+
+---
+
+## Inter-Agent Communication Pattern
+
+Agents do not call each other directly at runtime. The pattern is:
+
+1. **Caller** invokes a sub-agent via the `Agent` tool with `subagent_type` set to the agent's `name`.
+2. **Sub-agent** does its work and **writes output to `Context/`**.
+3. **Sub-agent** returns a short summary to its caller.
+4. **Caller** reads the summary, optionally reads the file, and decides the next step.
+
+This means every agent must produce a file artifact *and* a summary — files are the persistent record, summaries are the coordination signal.
+
+### Handoff Protocol
+
+When an agent completes its role in a lead's lifecycle (e.g. SDR → AE), the handing-off agent:
+- Confirms the relevant `Context/` files exist and are complete
+- Returns a handoff summary to the orchestrator (JSM or CRO) that includes file paths and a one-line status per file
+- The receiving agent reads those files at the start of its next task — it does not re-derive context from scratch
+
+---
+
+## Adding a New Agent
+
+1. Create `.claude/agents/[name].md` with the frontmatter and system prompt.
+2. Give it the minimum tool set it needs (prefer fewer tools).
+3. Define a clear `description` — the harness uses this to decide when to invoke it.
+4. Assign it a slot in the org chart above and update the relevant manager agent's "Direct Reports" section so it knows to delegate to the new agent.
+5. Add its output directory to `Context/` and its file pattern to the naming convention table.
