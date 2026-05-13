@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This workspace is a **Sales & Marketing Agent Org** — a team of Claude Code subagents that simulate a full B2B revenue organization. The user interacts with the `cro` agent as the single entry point; everything else cascades from there.
 
+There are no build, lint, or test commands — this is a pure agent + markdown workspace. All "code" is agent definition files (`.claude/agents/*.md`) and the shared state in `Context/`.
+
+A visual org chart is available at `org-chart.html`.
+
 ---
 
 ## Agent Org Chart
@@ -53,7 +57,7 @@ CRO  ← entry point — talk to this agent directly
 | `account-executive` | Deal management — first meeting to close | Meeting booked, deal stalling, proposal needed, pipeline review |
 | `account-manager` | Post-close — renewals, upsell, churn | Deal closed won, renewal approaching, account gone quiet |
 
-### Specialists (invoked by SDR and AE)
+### Specialists (invoked by SDR and AE, never by the user directly)
 | Agent | Role |
 |-------|------|
 | `prospect-researcher` | Company firmographics, decision makers, buying signals |
@@ -66,6 +70,32 @@ CRO  ← entry point — talk to this agent directly
 |-------|------|-------------|
 | `demand-gen` | Campaigns, MQL scoring, attribution | New campaign brief, MQL definition, channel mix recommendation |
 | `content-marketing` | Collateral, nurture sequences, thought leadership | One-pagers, case studies, blog outlines, nurture emails |
+
+---
+
+## Lead Lifecycle — End-to-End Flow
+
+```
+1. SDR          → researches company (prospect-researcher) + builds outreach (outreach-writer)
+                  writes: Context/prospects/[co].md, Context/outreach/[co]-sequence.md
+
+2. SDR → AE     handoff when meeting is booked
+                  AE reads: prospect profile + outreach thread
+
+3. AE           → meeting prep (meeting-prepper), BANT/MEDDIC qualification
+                  writes: Context/meeting-preps/[co]-[date].md, Context/pipeline/[co].md
+
+4. AE           → advances deal, updates pipeline record after each touch
+                  escalates stalls or pricing to Junior Sales Manager → VP Sales
+
+5. AE → AM      handoff on close-won
+                  AM reads: pipeline record + signed terms + relationship notes
+                  writes: Context/accounts/[co].md (post-close record)
+
+6. AM           → manages renewal, upsell, churn risk from Context/accounts/[co].md
+```
+
+Qualification frameworks used throughout: **BANT** (Budget, Authority, Need, Timeline) and **MEDDIC** (Metrics, Economic Buyer, Decision Criteria, Decision Process, Identify Pain, Champion).
 
 ---
 
@@ -85,25 +115,6 @@ Context/
 ├── campaigns/        — demand-gen output (campaign briefs, attribution reports, content calendar)
 └── content/          — content-marketing output (one-pagers, case studies, nurture sequences)
 ```
-
----
-
-## How to Use
-
-**Start here:** Address the `cro` agent with a high-level revenue goal:
-> *"We need to hit €2m ARR this year — make it happen"*
-> *"Give me the full revenue picture this week"*
-> *"We're entering a new market — how do we go to market?"*
-
-The CRO cascades down to VP Sales and VP Marketing, who delegate further to their teams.
-
-**Invoke agents directly** for specific tasks:
-> *"Research Anthropic as a prospect"* → `prospect-researcher`
-> *"Write outreach for Anthropic"* → `outreach-writer`
-> *"Prep me for my meeting with Salesforce on Thursday"* → `meeting-prepper`
-> *"Generate this week's pipeline report"* → `pipeline-reporter`
-> *"Build a battle card against HubSpot"* → `sales-enablement`
-> *"Write a one-pager for our enterprise use case"* → `content-marketing`
 
 ---
 
@@ -168,7 +179,7 @@ Agents do not call each other directly at runtime. The pattern is:
 3. **Sub-agent** returns a short summary to its caller.
 4. **Caller** reads the summary, optionally reads the file, and decides the next step.
 
-This means every agent must produce a file artifact *and* a summary — files are the persistent record, summaries are the coordination signal.
+Every agent must produce a file artifact *and* a summary — files are the persistent record, summaries are the coordination signal.
 
 ### Handoff Protocol
 
